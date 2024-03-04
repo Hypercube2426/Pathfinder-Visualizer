@@ -168,5 +168,34 @@ function renderMap() {
 renderMap();
 
 
+// ==========================================================
+// ================= AUXILLARY METHODS ⚙️🦾 ================
+// ==========================================================
+
+//check outBound of matrix ✔️❌
+function isValid(x, y) {
+    return (x >= 0 && y >= 0 && x < row && y < col);
+}
+
+
+
+//method for setting target and source 🎯⛳
+function set(className, x = -1, y = -1) {
+    if (isValid(x, y)) {
+        matrix[x][y].classList.add(className);
+    }
+    else {
+        x = Math.floor(Math.random() * row);
+        y = Math.floor(Math.random() * col);
+        matrix[x][y].classList.add(className);
+    }
+    return { x, y };
+}
+
+let source = set('source');
+let target = set('target');
+
+
+
 
 
