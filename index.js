@@ -380,5 +380,112 @@ function boardInteration(cells) {
 }
 
 
+// ==========================================================
+// ============== BUTTONS INTERATION 🟡👆 ==================
+// ==========================================================
+const visualizeBtn = document.getElementById('visualize');
+const clearPathBtn = document.querySelector('#clear-path');
+const clearBoardBtn = document.querySelector('#clear-board');
+const generateMazeBtn = document.querySelector('#generate-maze');
+const speedOptions = document.querySelectorAll('#speed .drop-menu a');
+
+var delay = 7;
+speedOptions.forEach((option) => {
+    option.addEventListener('click', () => {
+        let pickedSpeed = option.innerText;
+        if (pickedSpeed === 'Fast') delay = 4;
+        else if (pickedSpeed === 'normal') delay = 7;
+        else delay = 15;
+    })
+})
+
+if(window.innerWidth <= 662){
+    delay += 5;
+}
+//sortcuts
+
+window.addEventListener('keydown', (e) => {
+    switch (e.keyCode) {
+        case 32: visualizeBtn.click(); break;
+        case 77: generateMazeBtn.click(); break;
+        case 67: clearBoard(); break;
+        case 66: algorithm = "BFS"; break;
+        case 68: algorithm = "Dijkstra\'s"; break;
+        case 65: algorithm = "A*"; break;
+        case 71: algorithm = "Greedy"; break;
+        default:
+            break;
+    }
+    visualizeBtn.innerText = `Visualize ${algorithm}`;
+})
+
+
+const clearPath = () => {
+    cells.forEach((cell) => {
+        cell.classList.remove('visited', 'path');
+    })
+}
+const clearBoard = () => {
+    clearPath();
+    cells.forEach((cell) => {
+        cell.classList.remove('wall');
+    })
+}
+
+
+clearPathBtn.addEventListener('click', clearPath);
+clearBoardBtn.addEventListener('click', clearBoard);
+let wallToAnimate;
+generateMazeBtn.addEventListener('click', () => {
+    clearBoard();
+    wallToAnimate = [];
+
+    recursiveDivisionMaze(0, row - 1, 0, col - 1, 'horizontal', false);
+    animate(wallToAnimate, 'wall');
+});
+
+
+let searchToAnimate;
+let pathToAnimate;
+visualizeBtn.addEventListener('click', () => {
+    clearPath();
+    searchToAnimate = [];
+    pathToAnimate = [];
+    switch (algorithm) {
+        case '': BFS(); break;
+        case 'BFS': BFS(); break;
+        case 'Greedy': greedy(); break;
+        case 'Dijkstra\'s': Dijkstra(); break;
+        case 'A*': Astar(); break;
+        default: break;
+    }
+
+    animate(searchToAnimate, 'visited');
+});
+
+function animate(list, className) {
+    for (let i = 0; i < list.length; i++) {
+        setTimeout(() => {
+            if (className === 'wall')
+                list[i].setAttribute('class', `col ${className}`);
+            else
+                list[i].classList.add(className);
+
+            //after searching is done animate the path
+            if(className == 'visited' && i == list.length-1){
+                animate(pathToAnimate, 'path');
+            }
+        }, (className === 'path') ? i * (delay + 20) : i * delay);
+    }
+}
+
+
+
+
+
+
+
+
+
 
 
