@@ -480,6 +480,378 @@ function animate(list, className) {
 }
 
 
+// ==========================================================
+// =================== ALGORITHMS ⚙️🦾 =====================
+// ==========================================================
+
+function generatePath(parents, target) {
+    while (target) {
+        pathToAnimate.push(matrix[target.x][target.y]);
+        if (target == source) return;
+        target = parents.get(`${target.x}-${target.y}`);
+    }
+}
+
+function BFS() {
+    const queue = [];
+    const visited = new Set();
+    const parent = new Map();
+    queue.push(source);
+    visited.add(`${source.x}-${source.y}`);
+
+    while (queue.length > 0) {
+        const current = queue.shift();
+
+        if (current.x === target.x && current.y === target.y) {
+            generatePath(parent, target);
+            return;
+        }
+        searchToAnimate.push(matrix[current.x][current.y]);
+
+        const neighbours = [
+            { x: current.x + 1, y: current.y },
+            { x: current.x - 1, y: current.y },
+            { x: current.x, y: current.y + 1 },
+            { x: current.x, y: current.y - 1 }
+        ];
+
+        for (const neighbour of neighbours) {
+            //shoulbe be valid
+            //shouldn't be wall
+            //shouldn't be visited
+            const key = `${neighbour.x}-${neighbour.y}`;
+            if (
+                isValid(neighbour.x, neighbour.y) &&
+                !matrix[neighbour.x][neighbour.y].classList.contains('wall') &&
+                !visited.has(key)
+            ) {
+                visited.add(key);
+                queue.push(neighbour);
+                parent.set(key, current);
+            }
+        }
+    }
+
+}
+
+function Dijkstra() {
+    const distances = new Map();
+    const parent = new Map();
+    const visited = new Set();
+
+    for (let i = 0; i < row; i++) {
+        for (let j = 0; j < col; j++) {
+            const key = `${i}-${j}`;
+            distances.set(key, Infinity);
+        }
+    }
+
+    distances.set(`${source.x}-${source.y}`, 0);
+
+    while (true) {
+
+        let current;
+        let minDistance = Infinity;
+
+        for (let i = 0; i < row; i++) {
+            for (let j = 0; j < col; j++) {
+                const key = `${i}-${j}`;
+                if (!visited.has(key) && distances.get(key) < minDistance) {
+                    minDistance = distances.get(key);
+                    current = { x: i, y: j };
+                }
+            }
+        }
+
+        if (!current) return;
+
+        visited.add(`${current.x}-${current.y}`);
+
+        if (current.x === target.x && current.y === target.y) {
+            generatePath(parent, target);
+            return;
+        }
+
+        searchToAnimate.push(matrix[current.x][current.y]);
+        const neighbours = [
+            { x: current.x + 1, y: current.y },
+            { x: current.x - 1, y: current.y },
+            { x: current.x, y: current.y + 1 },
+            { x: current.x, y: current.y - 1 }
+        ];
+
+        for (const neighbour of neighbours) {
+            const key = `${neighbour.x}-${neighbour.y}`;
+            if (
+                isValid(neighbour.x, neighbour.y) &&
+                !matrix[neighbour.x][neighbour.y].classList.contains('wall')
+            ) {
+                const alt = distances.get(`${current.x}-${current.y}`) + 1;
+                if (alt < distances.get(key)) {
+                    distances.set(key, alt);
+                    parent.set(key, current);
+                }
+            }
+        }
+    }
+}
+
+function Astar() {
+    const openSet = [`${source.x}-${source.y}`];
+    const closedSet = new Set();
+    const gScore = new Map();
+    const fScore = new Map();
+    const parent = new Map();
+
+    gScore.set(`${source.x}-${source.y}`, 0);
+    fScore.set(`${source.x}-${source.y}`, heuristic(source, target));
+
+    function heuristic(node, target) {
+        return Math.abs(node.x - target.x) + Math.abs(node.y - target.y);
+    }
+
+    while (openSet.length > 0) {
+
+        let current;
+        let minFScore = Infinity;
+
+        for (const key of openSet) {
+            const f = fScore.get(key);
+            if (f < minFScore) {
+                minFScore = f;
+                current = key.split('-').map(Number);
+            }
+        }
+
+        const [currentX, currentY] = current;
+
+        if (currentX === target.x && currentY === target.y) {
+            generatePath(parent, target);
+            return;
+        }
+
+        openSet.splice(openSet.indexOf(`${currentX}-${currentY}`), 1);
+        closedSet.add(`${currentX}-${currentY}`);
+
+        searchToAnimate.push(matrix[currentX][currentY]);
+
+        const neighbours = [
+            { x: currentX + 1, y: currentY },
+            { x: currentX - 1, y: currentY },
+            { x: currentX, y: currentY + 1 },
+            { x: currentX, y: currentY - 1 }
+        ];
+
+        for (const neighbour of neighbours) {
+            const { x, y } = neighbour;
+            const key = `${x}-${y}`;
+            if (
+                isValid(x, y) &&
+                !matrix[x][y].classList.contains('wall') &&
+                !closedSet.has(key)
+            ) {
+                const tentativeGScore = gScore.get(`${currentX}-${currentY}`) + 1;
+                if (!openSet.includes(key)) {
+                    openSet.push(key);
+                } else if (tentativeGScore >= gScore.get(key)) {
+                    continue;
+                }
+
+                parent.set(key, { x: currentX, y: currentY });
+                gScore.set(key, tentativeGScore);
+                fScore.set(key, gScore.get(key) + heuristic(neighbour, target));
+            }
+        }
+    }
+
+}
+
+
+function greedy() {
+    const priorityQueue = new PriorityQueue();
+    const visited = new Set();
+    const parent = new Map();
+    const queued = new Set();
+
+    priorityQueue.enqueue(source, 0);
+    queued.add(`${source.x}-${source.y}`);
+
+    function heuristic(node, target) {
+        return Math.abs(node.x - target.x) + Math.abs(node.y - target.y);
+    }
+
+    while (!priorityQueue.isEmpty()) {
+
+        const current = priorityQueue.dequeue();
+        const { x, y } = current;
+        queued.delete(`${x}-${y}`);
+
+        if (x === target.x && y === target.y) {
+            generatePath(parent, target);
+            return;
+        }
+
+        visited.add(`${x}-${y}`);
+
+        searchToAnimate.push(matrix[x][y]);
+
+        const neighbours = [
+            { x: x + 1, y },
+            { x: x - 1, y },
+            { x, y: y + 1 },
+            { x, y: y - 1 }
+        ];
+
+        for (const neighbour of neighbours) {
+            const key = `${neighbour.x}-${neighbour.y}`;
+            if (
+                isValid(neighbour.x, neighbour.y) &&
+                !matrix[neighbour.x][neighbour.y].classList.contains('wall') &&
+                !visited.has(key) &&
+                !queued.has(key)
+            ) {
+                const priority = heuristic(neighbour, target);
+                priorityQueue.enqueue(neighbour, priority);
+                parent.set(key, { x, y });
+                queued.add(key);
+            }
+        }
+    }
+
+}
+
+class PriorityQueue {
+    constructor() {
+        this.elements = [];
+    }
+
+    enqueue(element, priority) {
+        this.elements.push({ element, priority });
+        this.sort();
+    }
+
+    dequeue() {
+        return this.elements.shift().element;
+    }
+
+    isEmpty() {
+        return this.elements.length === 0;
+    }
+
+    sort() {
+        this.elements.sort((a, b) => a.priority - b.priority);
+    }
+}
+
+
+
+function recursiveDivisionMaze(rowStart, rowEnd, colStart, colEnd, orientation, surroundingWalls) {
+    if (rowEnd < rowStart || colEnd < colStart) {
+        return;
+    }
+
+    if (!surroundingWalls) {
+        //Drawing top & bottom Boundary Wall
+        for (let i = 0; i < col; i++) {
+            if (matrix[0][i].classList.contains('source') || matrix[0][i].classList.contains('target'))
+                continue;
+
+            wallToAnimate.push(matrix[0][i]);
+
+            if (matrix[row - 1][i].classList.contains('source') || matrix[row - 1][i].classList.contains('target'))
+                continue;
+            wallToAnimate.push(matrix[row - 1][i]);
+        }
+
+        //Drawing left & right Boundar wall
+        for (let i = 0; i < row; i++) {
+            if (matrix[i][0].classList.contains('source') || matrix[i][0].classList.contains('target'))
+                continue;
+            wallToAnimate.push(matrix[i][0]);
+
+            if (matrix[i][col - 1].classList.contains('source') || matrix[i][0].classList.contains('target'))
+                continue;
+            wallToAnimate.push(matrix[i][col - 1]);
+        }
+        surroundingWalls = true;
+    }
+
+    //=========== horizontal ======
+    if (orientation === "horizontal") {
+        let possibleRows = [];
+        for (let i = rowStart; i <= rowEnd; i += 2) {
+            if (i == 0 || i == row - 1) continue;
+            possibleRows.push(i);
+        }
+        let possibleCols = [];
+        for (let i = colStart - 1; i <= colEnd + 1; i += 2) {
+            if (i <= 0 || i >= col - 1) continue;
+            possibleCols.push(i);
+        }
+
+        let currentRow = possibleRows[Math.floor(Math.random() * possibleRows.length)];
+        let colRandom = possibleCols[Math.floor(Math.random() * possibleCols.length)];
+
+        //drawing horizontal wall
+        for (i = colStart - 1; i <= colEnd + 1; i++) {
+            const cell = matrix[currentRow][i];
+            if (!cell || i === colRandom || cell.classList.contains('source') || cell.classList.contains('target'))
+                continue;
+
+            wallToAnimate.push(cell)
+        }
+
+
+        if (currentRow - 2 - rowStart > colEnd - colStart) {
+            recursiveDivisionMaze(rowStart, currentRow - 2, colStart, colEnd, orientation, surroundingWalls);
+        } else {
+            recursiveDivisionMaze(rowStart, currentRow - 2, colStart, colEnd, "vertical", surroundingWalls);
+        }
+        if (rowEnd - (currentRow + 2) > colEnd - colStart) {
+            recursiveDivisionMaze(currentRow + 2, rowEnd, colStart, colEnd, orientation, surroundingWalls);
+        } else {
+            recursiveDivisionMaze(currentRow + 2, rowEnd, colStart, colEnd, "vertical", surroundingWalls);
+        }
+    }
+
+    //=========== vertical ======
+    else if (orientation === 'vertical') {
+        let possibleCols = [];
+        for (let i = colStart; i <= colEnd; i += 2) {
+            possibleCols.push(i);
+        }
+        let possibleRows = [];
+        for (let i = rowStart - 1; i <= rowEnd + 1; i += 2) {
+            if (i <= 0 || i >= row - 1) continue;
+            possibleRows.push(i);
+        }
+
+        let currentCol = possibleCols[Math.floor(Math.random() * possibleCols.length)];
+        let rowRandom = possibleRows[Math.floor(Math.random() * possibleRows.length)];
+
+        //drawing vertical wall
+        for (i = rowStart - 1; i <= rowEnd + 1; i++) {
+            if (!matrix[i]) continue;
+
+            const cell = matrix[i][currentCol];
+            if (i === rowRandom || cell.classList.contains('source') || cell.classList.contains('target'))
+                continue;
+            wallToAnimate.push(cell)
+        }
+
+        if (rowEnd - rowStart > currentCol - 2 - colStart) {
+            recursiveDivisionMaze(rowStart, rowEnd, colStart, currentCol - 2, "horizontal", surroundingWalls);
+        } else {
+            recursiveDivisionMaze(rowStart, rowEnd, colStart, currentCol - 2, orientation, surroundingWalls);
+        }
+        if (rowEnd - rowStart > colEnd - (currentCol + 2)) {
+            recursiveDivisionMaze(rowStart, rowEnd, currentCol + 2, colEnd, "horizontal", surroundingWalls);
+        } else {
+            recursiveDivisionMaze(rowStart, rowEnd, currentCol + 2, colEnd, orientation, surroundingWalls);
+        }
+    }
+};
+
 
 
 
